@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f8fc">
+  <title>ImageURL — upload and share</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    :root { color-scheme: light; --ink: #17233c; --muted: #66748c; --blue: #4263eb; --line: #e2e8f2; --paper: #fff; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #f6f8fc; color: var(--ink); font-family: "DM Sans", sans-serif; }
+    .shell { max-width: 900px; margin: 0 auto; padding: 48px 24px 64px; }
+    header { margin-bottom: 30px; }
+    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 34px; font: 800 17px Manrope, sans-serif; letter-spacing: -.4px; }
+    .brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 12px; color: white; background: var(--blue); box-shadow: 0 6px 16px #4263eb40; }
+    h1 { margin: 0 0 9px; font: 800 clamp(30px, 5vw, 42px) Manrope, sans-serif; letter-spacing: -1.6px; }
+    header p { margin: 0; color: var(--muted); font-size: 16px; }
+    .card { padding: 26px; background: var(--paper); border: 1px solid var(--line); border-radius: 18px; box-shadow: 0 12px 32px #26385b0a; }
+    .section-title { margin: 0 0 16px; font: 700 16px Manrope, sans-serif; }
+    label { display: block; margin: 0 0 7px; color: #394760; font-size: 13px; font-weight: 700; }
+    input[type="text"], input[type="password"] { width: 100%; padding: 12px 13px; color: var(--ink); border: 1px solid #d6deeb; border-radius: 9px; font: inherit; outline: none; }
+    input:focus { border-color: #8195ff; box-shadow: 0 0 0 3px #4263eb1a; }
+    .help { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+    .help a, a { color: #3455d1; }
+    .auth-grid { display: grid; grid-template-columns: 1fr 180px; gap: 16px; }
+    .dropzone { display: grid; place-items: center; min-height: 185px; margin-top: 23px; padding: 25px; text-align: center; border: 1.5px dashed #b9c6dc; border-radius: 13px; background: #fafbfe; transition: .15s ease; }
+    .dropzone.dragging { border-color: var(--blue); background: #f0f3ff; }
+    .upload-icon { margin-bottom: 9px; color: var(--blue); }
+    .dropzone strong { display: block; font-size: 15px; }
+    .dropzone p { margin: 6px 0 13px; color: var(--muted); font-size: 13px; }
+    button, .browse { min-height: 40px; padding: 0 16px; border: 0; border-radius: 9px; background: var(--blue); color: white; font: 700 13px "DM Sans", sans-serif; cursor: pointer; transition: .15s ease; }
+    button:hover, .browse:hover { background: #3453d2; transform: translateY(-1px); }
+    button:disabled { opacity: .48; cursor: not-allowed; transform: none; }
+    .browse { display: inline-flex; align-items: center; }
+    input[type="file"] { display: none; }
+    .selected { margin-top: 17px; color: var(--muted); font-size: 13px; }
+    .selected:empty { display: none; }
+    .actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+    .secondary { color: #33425d; background: #eef1f7; }
+    .secondary:hover { background: #e2e7f0; }
+    .notice { margin-top: 15px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    .status { display: none; margin-top: 17px; padding: 12px 14px; border-radius: 9px; font-size: 13px; line-height: 1.5; }
+    .status.show { display: block; }
+    .status.error { color: #9c2c32; background: #fff0f0; }
+    .status.success { color: #17613d; background: #eaf8f0; }
+    .status.info { color: #344a85; background: #eef2ff; }
+    .results { margin-top: 24px; }
+    .results-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 12px; }
+    .results-head h2 { margin: 0; font: 700 16px Manrope, sans-serif; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--line); }
+    th { color: #586780; background: #f8f9fc; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+    tr:last-child td { border-bottom: 0; }
+    td:first-child { max-width: 230px; overflow-wrap: anywhere; }
+    .url-cell { min-width: 260px; overflow-wrap: anywhere; }
+    .url-cell a { text-decoration: none; }
+    .url-cell a:hover { text-decoration: underline; }
+    .empty { color: var(--muted); font-size: 13px; }
+    footer { padding: 18px 4px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+    @media (max-width: 600px) { .shell { padding: 28px 15px 40px; } .card { padding: 20px 16px; } .auth-grid { grid-template-columns: 1fr; } .results-head { align-items: flex-start; flex-direction: column; } .actions { align-items: stretch; flex-direction: column; } .actions button { width: 100%; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand"><span class="brand-mark" aria-hidden="true">▧</span> ImageURL</div>
+      <h1>Upload. Share. Done.</h1>
+      <p>Upload images to this repository and get direct image links you can use anywhere.</p>
+    </header>
+
+    <section class="card" aria-labelledby="upload-heading">
+      <h2 class="section-title" id="upload-heading">Connect to GitHub</h2>
+      <div class="auth-grid">
+        <div>
+          <label for="token">Fine-grained personal access token</label>
+          <input id="token" type="password" autocomplete="off" placeholder="github_pat_…">
+          <p class="help">Create a token limited to <strong>nihalk004/imageurl</strong> with <strong>Contents: Read and write</strong> permission. It is used only in this page session and is never saved.</p>
+        </div>
+        <div>
+          <label for="branch">Target branch</label>
+          <input id="branch" type="text" value="main" autocomplete="off">
+          <p class="help">Images are added under <code>images/</code>.</p>
+        </div>
+      </div>
+
+      <div class="dropzone" id="dropzone" role="region" aria-label="Image upload area">
+        <div>
+          <div class="upload-icon" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4a2 2 0 002 2h10a2 2 0 002-2v-4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <strong>Drop your images here</strong>
+          <p>PNG, JPG, GIF, or WebP · up to 10 MB each</p>
+          <label class="browse" for="files">Choose images</label>
+          <input id="files" type="file" accept="image/png,image/jpeg,image/gif,image/webp" multiple>
+        </div>
+      </div>
+      <div class="selected" id="selected" aria-live="polite"></div>
+      <div class="actions">
+        <button id="upload" type="button" disabled>Upload images</button>
+        <button id="export" class="secondary" type="button" disabled>Download Excel</button>
+      </div>
+      <p class="notice">The uploaded image files become public because this repository is public. Each generated link points directly to the image and opens as an image, without a webpage around it.</p>
+      <div class="status" id="status" role="status" aria-live="polite"></div>
+    </section>
+
+    <section class="results" aria-labelledby="results-heading">
+      <div class="results-head">
+        <h2 id="results-heading">Uploaded images <span id="count"></span></h2>
+        <span class="empty" id="empty">Your uploaded image links will appear here.</span>
+      </div>
+      <div class="table-wrap" id="table-wrap" hidden>
+        <table>
+          <thead><tr><th>Image</th><th>Direct image URL</th></tr></thead>
+          <tbody id="image-list"></tbody>
+        </table>
+      </div>
+    </section>
+    <footer>Links use GitHub’s raw file host. Keep a copy of the Excel file if you need a record of your uploads.</footer>
+  </main>
+
+  <script>
+    (() => {
+      const OWNER = "nihalk004";
+      const REPO = "imageurl";
+      const MAX_BYTES = 10 * 1024 * 1024;
+      const allowedTypes = new Set(["image/png", "image/jpeg", "image/gif", "image/webp"]);
+      const filesInput = document.getElementById("files");
+      const tokenInput = document.getElementById("token");
+      const branchInput = document.getElementById("branch");
+      const uploadButton = document.getElementById("upload");
+      const exportButton = document.getElementById("export");
+      const dropzone = document.getElementById("dropzone");
+      const status = document.getElementById("status");
+      const selectedLabel = document.getElementById("selected");
+      const uploaded = [];
+      let pendingFiles = [];
+
+      function showStatus(message, kind = "info") {
+        status.textContent = message;
+        status.className = `status show ${kind}`;
+      }
+      function setFiles(files) {
+        pendingFiles = Array.from(files || []);
+        selectedLabel.textContent = pendingFiles.length
+          ? `${pendingFiles.length} image${pendingFiles.length === 1 ? "" : "s"} selected`
+          : "";
+        uploadButton.disabled = pendingFiles.length === 0;
+      }
+      function safeFilename(name) {
+        const cleaned = name.normalize("NFKC").replace(/[^\p{L}\p{N}._-]+/gu, "-").replace(/^-+|-+$/g, "");
+        return cleaned || "image";
+      }
+      function encodePath(path) {
+        return path.split("/").map(encodeURIComponent).join("/");
+      }
+      function fileToBase64(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onerror = () => reject(new Error(`Could not read ${file.name}.`));
+          reader.onload = () => resolve(String(reader.result).split(",")[1]);
+          reader.readAsDataURL(file);
+        });
+      }
+      function renderList() {
+        const tbody = document.getElementById("image-list");
+        tbody.replaceChildren();
+        for (const item of uploaded) {
+          const row = document.createElement("tr");
+          const nameCell = document.createElement("td");
+          nameCell.textContent = item.name;
+          const urlCell = document.createElement("td");
+          urlCell.className = "url-cell";
+          const link = document.createElement("a");
+          link.href = item.url;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.textContent = item.url;
+          urlCell.append(link);
+          row.append(nameCell, urlCell);
+          tbody.append(row);
+        }
+        document.getElementById("count").textContent = uploaded.length ? `(${uploaded.length})` : "";
+        document.getElementById("empty").hidden = uploaded.length > 0;
+        document.getElementById("table-wrap").hidden = uploaded.length === 0;
+        exportButton.disabled = uploaded.length === 0;
+      }
+
+      filesInput.addEventListener("change", () => setFiles(filesInput.files));
+      for (const eventName of ["dragenter", "dragover"]) {
+        dropzone.addEventListener(eventName, event => { event.preventDefault(); dropzone.classList.add("dragging"); });
+      }
+      for (const eventName of ["dragleave", "drop"]) {
+        dropzone.addEventListener(eventName, event => { event.preventDefault(); dropzone.classList.remove("dragging"); });
+      }
+      dropzone.addEventListener("drop", event => setFiles(event.dataTransfer.files));
+
+      uploadButton.addEventListener("click", async () => {
+        const token = tokenInput.value.trim();
+        const branch = branchInput.value.trim();
+        if (!token) { showStatus("Enter a GitHub fine-grained personal access token to upload.", "error"); tokenInput.focus(); return; }
+        if (!branch) { showStatus("Enter the branch to upload to.", "error"); branchInput.focus(); return; }
+        const invalid = pendingFiles.find(file => !allowedTypes.has(file.type) || file.size > MAX_BYTES || file.size === 0);
+        if (invalid) {
+          showStatus(`${invalid.name} is empty, over 10 MB, or not a supported image type. Choose PNG, JPG, GIF, or WebP images up to 10 MB each.`, "error");
+          return;
+        }
+        uploadButton.disabled = true;
+        filesInput.disabled = true;
+        let completed = 0;
+        try {
+          for (const file of pendingFiles) {
+            showStatus(`Uploading ${completed + 1} of ${pendingFiles.length}: ${file.name}`, "info");
+            const timestamp = new Date().toISOString().replace(/[-:.]/g, "").replace("T", "-").replace("Z", "");
+            const path = `images/${timestamp}-${crypto.randomUUID()}-${safeFilename(file.name)}`;
+            const content = await fileToBase64(file);
+            const response = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodePath(path)}`, {
+              method: "PUT",
+              headers: {
+                "Accept": "application/vnd.github+json",
+                "Authorization": `Bearer ${token}`,
+                "X-GitHub-Api-Version": "2022-11-28",
+                "Content-Type": "application/json"
+              },
+              body: JSON.stringify({ message: `Upload image: ${file.name}`, content, branch })
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+              const detail = result.message || `GitHub returned HTTP ${response.status}.`;
+              throw new Error(`${file.name}: ${detail} Check that the token has Contents read/write access to ${OWNER}/${REPO} and that the branch exists.`);
+            }
+            const encodedPath = path.split("/").map(encodeURIComponent).join("/");
+            uploaded.push({ name: file.name, url: `https://raw.githubusercontent.com/${OWNER}/${REPO}/${encodeURIComponent(branch)}/${encodedPath}`, uploadedAt: new Date().toISOString() });
+            completed++;
+            renderList();
+          }
+          setFiles([]);
+          filesInput.value = "";
+          showStatus(`${completed} image${completed === 1 ? "" : "s"} uploaded successfully. Your direct links are ready.`, "success");
+        } catch (error) {
+          showStatus(error.message || "Upload failed. Please try again.", "error");
+        } finally {
+          uploadButton.disabled = pendingFiles.length === 0;
+          filesInput.disabled = false;
+        }
+      });
+
+      exportButton.addEventListener("click", () => {
+        if (!window.XLSX) {
+          showStatus("Excel export could not load. Check your internet connection and reload the page.", "error");
+          return;
+        }
+        const sheet = XLSX.utils.json_to_sheet(uploaded.map(item => ({ "Image name": item.name, "Image URL": item.url, "Uploaded at (UTC)": item.uploadedAt })));
+        sheet["!cols"] = [{ wch: 32 }, { wch: 88 }, { wch: 26 }];
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, sheet, "Image URLs");
+        XLSX.writeFile(workbook, "image-urls.xlsx");
+      });
+
+      renderList();
+    })();
+  </script>
+</body>
+</html>
